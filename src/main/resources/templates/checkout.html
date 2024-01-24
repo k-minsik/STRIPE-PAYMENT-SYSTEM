@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns='http://www.w3.org/1999/xhtml' xmlns:th='http://www.thymeleaf.org' lang="ko">
+<head>
+    <title>Checkout</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            margin: 50px auto;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        label {
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        input, .StripeElement {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .StripeElement--focus, input:focus {
+            outline: none;
+            border-color: #555;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background: #218838;
+        }
+        #card-errors {
+            color: red;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>결제하기</h2>
+    <form action="/charge" method="post" id="payment-form">
+        <label for="email">이메일</label>
+        <input id="email" type="email" name="email" required />
+
+        <label for="amount">금액 (최소 단위, 예: 센트)</label>
+        <input id="amount" type="number" name="amount" required />
+
+        <div class="form-row">
+            <label for="card-element">카드 정보</label>
+            <div id="card-number-element" class="StripeElement"></div>
+            <div id="card-expiry-element" class="StripeElement"></div>
+            <div id="card-cvc-element" class="StripeElement"></div>
+        </div>
+
+        <label for="postal-code">우편번호</label>
+        <input id="postal-code" type="text" name="postal_code" required />
+
+        <button type="submit">결제하기</button>
+        <div id="card-errors" role="alert"></div>
+    </form>
+</div>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    var stripe = Stripe('pk_test_51OZDc8GLrVVrRBnXg9NKM8CXakcQmjn0kyCViPQ6BlIE0UL6GW72U9DUAFskViwEaADHsuOBccOrpZ5IgMGmPWSS00LDoTnM1u');
+    var elements = stripe.elements();
+    var style = {
+        base: {
+            fontSize: '16px',
+            color: '#32325d',
+        }
+    };
+
+    var cardNumber = elements.create('cardNumber', {style: style});
+    cardNumber.mount('#card-number-element');
+
+    var cardExpiry = elements.create('cardExpiry', {style: style});
+    cardExpiry.mount('#card-expiry-element');
+
+    var cardCvc = elements.create('cardCvc', {style: style});
+    cardCvc.mount('#card-cvc-element');
+
+    var form = document.getElementById('payment-form');
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        stripe.createToken(cardNumber).then(function(result) {
+            if (result.error) {
+                var errorElement = document.getElementById('card-errors');
+                errorElement.textContent = result.error.message;
+            } else {
+                stripeTokenHandler(result.token);
+            }
+        });
+    });
+
+    function stripeTokenHandler(token) {
+        var form = document.getElementById('payment-form');
+        var hiddenInput = document.createElement('input');
+        hiddenInput.setAttribute('type', 'hidden');
+        hiddenInput.setAttribute('name', 'stripeToken');
+        hiddenInput.setAttribute('value', token.id);
+        form.appendChild(hiddenInput);
+
+        form.submit();
+    }
+</script>
+</body>
+</html>
